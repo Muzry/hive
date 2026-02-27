@@ -1180,7 +1180,7 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 					},
 				)
 				r.ExpectationDescription = "Sent pre-shanghai Forkchoice using ForkchoiceUpdatedV2 + Withdrawals, error is expected"
-				r.ExpectErrorCode(InvalidParamsError)
+				r.ExpectAnyErrorCode(*globals.INVALID_PAYLOAD_ATTRIBUTES, *globals.INVALID_PARAMS_ERROR)
 
 				// Send a valid Pre-Shanghai request using ForkchoiceUpdatedV2
 				// (CLMock uses V1 by default)
@@ -1203,7 +1203,12 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 			if !ws.SkipBaseVerifications {
 				// Try to get the same payload but use `engine_getPayloadV2`
 				g := t.TestEngine.TestEngineGetPayloadV2(t.CLMock.NextPayloadID)
-				g.ExpectPayload(&t.CLMock.LatestPayloadBuilt)
+				if g.Error != nil {
+					// Some clients return UNSUPPORTED_FORK pre-Shanghai when calling GetPayloadV2.
+					g.ExpectAnyErrorCode(*globals.UNSUPPORTED_FORK_ERROR)
+				} else {
+					g.ExpectPayload(&t.CLMock.LatestPayloadBuilt)
+				}
 
 				// Send produced payload but try to include non-nil
 				// `withdrawals`, it should fail.
@@ -1216,7 +1221,7 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 				}
 				r := t.TestEngine.TestEngineNewPayloadV2(payloadWithEmptyWithdrawalsList)
 				r.ExpectationDescription = "Sent pre-shanghai payload using NewPayloadV2+Withdrawals, error is expected"
-				r.ExpectErrorCode(InvalidParamsError)
+				r.ExpectAnyErrorCode(*globals.INVALID_PAYLOAD_ATTRIBUTES, *globals.INVALID_PARAMS_ERROR)
 
 				// Send valid ExecutionPayloadV1 using engine_newPayloadV2
 				r = t.TestEngine.TestEngineNewPayloadV2(&t.CLMock.LatestPayloadBuilt)
@@ -1256,8 +1261,8 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 		OnPayloadProducerSelected: func() {
 
 			if !ws.SkipBaseVerifications {
-				// Try to send a PayloadAttributesV1 with null withdrawals after
-				// Shanghai
+				// Try to send ForkchoiceUpdatedV2 with nil withdrawals after
+				// Shanghai.
 				r := t.TestEngine.TestEngineForkchoiceUpdatedV2(
 					&beacon.ForkchoiceStateV1{
 						HeadBlockHash: t.CLMock.LatestHeader.Hash(),
@@ -1269,8 +1274,8 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 						Withdrawals:           nil,
 					},
 				)
-				r.ExpectationDescription = "Sent shanghai fcu using PayloadAttributesV1, error is expected"
-				r.ExpectErrorCode(InvalidParamsError)
+				r.ExpectationDescription = "Sent shanghai ForkchoiceUpdatedV2 with nil withdrawals, error is expected"
+				r.ExpectAnyErrorCode(*globals.INVALID_PAYLOAD_ATTRIBUTES, *globals.INVALID_PARAMS_ERROR)
 			}
 
 			// Send some withdrawals
@@ -1301,7 +1306,7 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 		OnGetPayload: func() {
 			if !ws.SkipBaseVerifications {
 				// Send invalid `ExecutionPayloadV1` by replacing withdrawals list
-				// with null, and client must respond with `InvalidParamsError`.
+				// with null, and client must respond with `InvalidPayloadAttributes`.
 				// Note that StateRoot is also incorrect but null withdrawals should
 				// be checked first instead of responding `INVALID`
 				nilWithdrawalsPayload, err := (&helper.CustomPayloadData{
@@ -1312,7 +1317,7 @@ func (ws *WithdrawalsBaseSpec) Execute(t *test.Env) {
 				}
 				r := t.TestEngine.TestEngineNewPayloadV2(nilWithdrawalsPayload)
 				r.ExpectationDescription = "Sent shanghai payload using ExecutionPayloadV1, error is expected"
-				r.ExpectErrorCode(InvalidParamsError)
+				r.ExpectAnyErrorCode(*globals.INVALID_PAYLOAD_ATTRIBUTES, *globals.INVALID_PARAMS_ERROR)
 
 				// Verify the list of withdrawals returned on the payload built
 				// completely matches the list provided in the

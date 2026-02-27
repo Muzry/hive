@@ -176,6 +176,16 @@ func (exp *ForkchoiceResponseExpectObject) ExpectErrorCode(code int) {
 	}
 }
 
+func (exp *ForkchoiceResponseExpectObject) ExpectAnyErrorCode(codes ...int) {
+	exp.ExpectError()
+	for _, code := range codes {
+		if exp.ErrorCode == code {
+			return
+		}
+	}
+	exp.Fatalf("FAIL (%s): Unexpected error code on EngineForkchoiceUpdatedV%d: got=%d, expected any of=%v", exp.TestName, exp.Version, exp.ErrorCode, codes)
+}
+
 func (exp *ForkchoiceResponseExpectObject) ExpectPayloadStatus(ps PayloadStatus) {
 	exp.ExpectNoError()
 	if PayloadStatus(exp.Response.PayloadStatus.Status) != ps {
@@ -325,6 +335,16 @@ func (exp *NewPayloadResponseExpectObject) ExpectErrorCode(code int) {
 	}
 }
 
+func (exp *NewPayloadResponseExpectObject) ExpectAnyErrorCode(codes ...int) {
+	exp.ExpectError()
+	for _, code := range codes {
+		if exp.ErrorCode == code {
+			return
+		}
+	}
+	exp.Fatalf("FAIL (%s): Unexpected error code on EngineNewPayloadV%d: got=%d, expected any of=%v", exp.TestName, exp.Version, exp.ErrorCode, codes)
+}
+
 func (exp *NewPayloadResponseExpectObject) ExpectNoValidationError() {
 	if exp.Status.ValidationError != nil {
 		exp.Fatalf("FAIL (%s): Unexpected validation error on EngineNewPayloadV%d: %v, expected=<None>", exp.TestName, exp.Version, exp.Status.ValidationError)
@@ -468,6 +488,16 @@ func (exp *GetPayloadResponseExpectObject) ExpectErrorCode(code int) {
 	if exp.ErrorCode != code {
 		exp.Fatalf("FAIL (%s): Expected error code on EngineGetPayloadV%d: want=%d, got=%d", exp.TestName, exp.Version, code, exp.ErrorCode)
 	}
+}
+
+func (exp *GetPayloadResponseExpectObject) ExpectAnyErrorCode(codes ...int) {
+	exp.ExpectError()
+	for _, code := range codes {
+		if exp.ErrorCode == code {
+			return
+		}
+	}
+	exp.Fatalf("FAIL (%s): Unexpected error code on EngineGetPayloadV%d: got=%d, expected any of=%v", exp.TestName, exp.Version, exp.ErrorCode, codes)
 }
 
 func ComparePayloads(want *typ.ExecutableData, got *typ.ExecutableData) error {
